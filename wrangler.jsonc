@@ -44,7 +44,7 @@
     {
       "binding": "DB",
       "database_name": "jiancai-road",
-      "database_id": "REPLACE_AFTER_wrangler_d1_create",
+      "database_id": "804d2e91-58d1-411d-b9e2-2689ecbc762a",
       "migrations_dir": "drizzle"
     }
   ],
