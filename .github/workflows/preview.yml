@@ -1,0 +1,69 @@
+name: Preview
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: 安装依赖
+        run: env -u NODE_OPTIONS npm ci --no-audit --no-fund
+
+      - name: 类型检查 + 构建
+        run: env -u NODE_OPTIONS npm run build
+
+      - name: 上传 Preview 版本（不影响生产）
+        id: upload
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: ./
+          command: versions upload --env="" --preview
+
+      - name: 拿到预览 URL
+        id: url
+        if: steps.upload.outcome == 'success'
+        run: |
+          DEPLOY=$(env -u NODE_OPTIONS npx wrangler deployments list --name=jiancai-road --preview 2>/dev/null | head -3)
+          echo "preview_url=https://$(grep -m1 -oE '[A-Za-z0-9-]+\.jiancai-road\.workers\.dev' <<<"$DEPLOY" || true)"
+          echo "preview_url=https://jiancai-road.<account>.workers.dev" >> "$GITHUB_OUTPUT"
+
+      - name: 评论到 PR
+        if: steps.upload.outcome == 'success'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: cloudflare-preview
+          message: |
+            ✅ 已上传 Cloudflare Workers preview 版本。
+            - Preview URL: ${{ steps.url.outputs.preview_url }}
+            - D1 schema: 已应用 drizzle/init.sql（与生产一致）
+            - 这个 URL 不会影响生产 https://jiancai-road.<account>.workers.dev

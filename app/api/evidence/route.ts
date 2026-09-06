@@ -1,0 +1,2 @@
+import {database} from '@/db/raw';
+export async function GET(){try{const result=await database().prepare("SELECT id,title,content,location,event_date,created_at,files FROM materials WHERE status='published' AND consent=1 ORDER BY created_at DESC LIMIT 60").all();return Response.json({items:result.results.map((r:any)=>({...r,files:JSON.parse(r.files).map((f:any,i:number)=>({name:f.name,type:f.type,url:'/api/media?id='+r.id+'&index='+i}))}))},{headers:{'Cache-Control':'no-store'}})}catch{return Response.json({error:'证据墙暂时无法加载，请稍后刷新。'},{status:503})}}

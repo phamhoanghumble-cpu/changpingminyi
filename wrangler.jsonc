@@ -1,0 +1,82 @@
+/**
+ * Cloudflare Workers / Pages 部署配置（wrangler v4）
+ * 真实部署前需要替换以下占位为你的 Cloudflare 资源 ID：
+ *   - d1_databases[].database_id      （wrangler d1 create 建库后填回）
+ *   - r2_buckets[].bucket_name        （wrangler r2 bucket create 建桶名）
+ *   - zone_id / routes / custom_domain（可选，自定义域名时填）
+ *   - Turnstile sitekey / secret      （Cloudflare Dashboard → Turnstile）
+ *   - VOTE_HMAC_SECRET                （openssl rand -hex 32 生成）
+ *   - REVIEWER_EMAILS                 （逗号分隔允许进入 /review 的邮箱）
+ *
+ * 部署：
+ *   npx wrangler d1 create jiancai-road
+ *   # 把返回的 database_id 替换上面占位
+ *   npx wrangler r2 bucket create jiancai-road-media
+ *   npx wrangler d1 execute jiancai-road --remote --file=./drizzle/init.sql
+ *   npx wrangler secret put TURNSTILE_SECRET
+ *   npx wrangler secret put VOTE_HMAC_SECRET
+ *   npx wrangler deploy
+ *
+ * GitHub Actions 部署见 .github/workflows/deploy.yml
+ *
+ * 注意：
+ *   - D1/R2 bindings 在这里声明一次，vite.config.ts 的 localBindingConfig 不要重复声明，
+ *     否则 wrangler 部署时会报 "DB assigned to multiple D1 Database bindings"。
+ *   - `migrations_remote_readonly` / `public_access` 是较新 wrangler 的字段，
+ *     兼容最低版本考虑暂时不写；D1 默认已是 private。
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "jiancai-road",
+  "compatibility_date": "2025-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "worker/index.ts",
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./.openai/assets",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "single-page-application"
+  },
+  "observability": { "enabled": true },
+  "placement": { "mode": "smart" },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "jiancai-road",
+      "database_id": "REPLACE_AFTER_wrangler_d1_create",
+      "migrations_dir": "drizzle"
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "jiancai-road-media"
+    }
+  ],
+
+  "images": {
+    "binding": "IMAGES"
+  },
+
+  "vars": {
+    "REVIEWER_EMAILS": "REPLACE_COMMA_SEPARATED_EMAILS",
+    "NEXT_PUBLIC_TURNSTILE_SITEKEY": "REPLACE_TURNSTILE_SITEKEY",
+    "VOTE_BUCKET_PER_HOUR": "12",
+    "MAX_UPLOAD_BYTES": "20971520",
+    "MAX_FILE_COUNT": "5",
+    "MIN_CONTENT_CHARS": "5",
+    "MAX_CONTENT_CHARS": "10000",
+    "MATERIAL_LIST_LIMIT": "6",
+    "EVIDENCE_LIST_LIMIT": "60",
+    "REVIEW_LIST_LIMIT": "100"
+  },
+
+  "routes": [
+    {
+      "pattern": "REPLACE_HOSTNAME/*",
+      "zone_name": "REPLACE_ZONE_NAME"
+    }
+  ]
+}
