@@ -115,10 +115,6 @@ export default function Home() {
       setMessage("请确认公开展示与隐私提示后再提交。");
       return;
     }
-    if (!tsToken) {
-      setMessage("请完成人机校验。");
-      return;
-    }
     setBusy(true);
     const form = e.currentTarget;
     const data = new FormData(form);
@@ -722,13 +718,12 @@ export default function Home() {
               )}
               <Button
                 className="submit-button"
-                disabled={busy || files.length < 1 || !publicConsent || !tsToken}
+                disabled={busy || files.length < 1 || !publicConsent}
                 type="submit"
               >
                 {busy ? "正在上传，请勿关闭…" : "提交并公开展示"}
                 <ArrowUpRight size={17} />
               </Button>
-              <Turnstile onToken={setTsToken} className="cf-turnstile-host" />
             </form>
           )}
         </DialogContent>
