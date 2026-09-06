@@ -2254,21 +2254,23 @@ footer .text-link {
 
 /* 瀑布流 Masonry 容器 */
 .masonry-wall-container {
-  column-count: 3;
-  column-gap: 22px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  align-items: start;
+  gap: 24px;
   margin-top: 24px;
 }
-@media (max-width: 1024px) {
-  .masonry-wall-container {
-    column-count: 2;
-    column-gap: 18px;
-  }
+.masonry-wall-container > .wall-card {
+  margin-bottom: 0;
+  min-width: 0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-@media (max-width: 640px) {
-  .masonry-wall-container {
-    column-count: 1;
-    column-gap: 0;
-  }
+.masonry-wall-container[data-masonry-ready] { display: block; }
+.masonry-wall-container[data-masonry-ready] > .wall-card {
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 .wall-grid {

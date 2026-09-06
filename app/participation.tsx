@@ -12,6 +12,7 @@ import {
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { MATERIAL_CATEGORIES, materialCategoryLabel } from "@/lib/material-categories";
+import { MaterialMasonry } from "./MaterialMasonry";
 import { MaterialAttachment, type MaterialFile } from "./MaterialAttachment";
 
 interface ResidentMaterial {
@@ -202,7 +203,7 @@ export function Participation({
         ) : null}
 
         {wall.length ? (
-          <div className="masonry-wall-container">
+          <MaterialMasonry>
             {wall.map((item) => {
               const isHighlighted = item.id === latestSubmittedId;
               return (
@@ -258,7 +259,7 @@ export function Participation({
                 </article>
               );
             })}
-          </div>
+          </MaterialMasonry>
         ) : !wallError && !loading ? (
           <div className="wall-empty">
             <h3>{category ? "该分类暂无公开材料。" : "暂无公开材料。"}</h3>

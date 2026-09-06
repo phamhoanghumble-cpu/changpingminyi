@@ -141,3 +141,16 @@ test("text-only publishes immediately, category filtering isolates records, and 
   form.delete('publicConsent');
   assert.equal((await POST(new Request('http://localhost/api/materials', {method:'POST',body:form}))).status,400);
 });
+
+test('masonry fills every column before stacking and uses the shortest column', async () => {
+  const { masonryLayout } = await vite.ssrLoadModule('/lib/masonry-layout.ts');
+  const layout = masonryLayout([900, 300, 500, 200], 3, 300, 24);
+  assert.deepEqual(layout.positions, [
+    {x:0,y:0}, {x:324,y:0}, {x:648,y:0}, {x:324,y:324},
+  ]);
+  assert.equal(layout.height, 900);
+  const resized = masonryLayout([100, 200, 150], 1, 320, 24);
+  assert.deepEqual(resized.positions.map(p => p.y), [0,124,348]);
+  assert.equal(resized.height, 498);
+  assert.equal(masonryLayout([], 3, 300, 24).height, 0);
+});
