@@ -10,7 +10,7 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 // Only the runtime entry + compat flag need to be passed to the vite plugin.
 const localBindingConfig = {
   main: "./worker/index.ts",
-  compatibility_flags: ["nodejs_compat"],
+  compatibility_flags: [],
   d1_databases: [],
   r2_buckets: [],
 };

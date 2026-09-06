@@ -72,11 +72,5 @@
     "EVIDENCE_LIST_LIMIT": "60",
     "REVIEW_LIST_LIMIT": "100"
   },
-
-  "routes": [
-    {
-      "pattern": "REPLACE_HOSTNAME/*",
-      "zone_name": "REPLACE_ZONE_NAME"
-    }
-  ]
+  "workers_dev": true
 }
