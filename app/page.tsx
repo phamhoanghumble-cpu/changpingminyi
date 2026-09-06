@@ -210,8 +210,8 @@ export default function Home() {
       <main id="main-content" className="focused-dossier">
         <section className="hero investigation-hero" id="overview" aria-labelledby="headline">
           <img
-            src="/real-scene-investigation.jpg"
-            alt="建材路现场高空实拍俯瞰图：路侧施划停车泊位挤占非机动车道实况"
+            src="/road-editorial.png"
+            alt="自行车、路侧停车与绕行路线的视觉示意，非建材路现场照片"
             className="hero-art"
           />
           <div className="hero-shade" />
@@ -222,7 +222,7 @@ export default function Home() {
             <div className="hero-demand"><span>居民诉求</span><strong>取消争议泊位，恢复非机动车专用道。</strong></div>
             <a href="#voices" className="hero-link">查看核心争议 <ArrowRight size={18} /></a>
           </div>
-          <span className="art-caption">现场高空实拍 · 俯瞰实景图</span>
+          <span className="art-caption">视觉示意 · 非现场照片</span>
         </section>
 
         <section className="section-block dispute-section" id="voices" aria-labelledby="dispute-heading">
