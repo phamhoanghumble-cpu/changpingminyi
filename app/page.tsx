@@ -144,7 +144,7 @@ export default function Home() {
           建材路<span>· 居民反馈</span>
         </a>
         <nav aria-label="主导航">
-          <a href="#vote">居民投票</a>
+          <a href="#voices">居民心声</a>
           <a href="#wall">现场证据</a>
           <a href="#replies">回访记录</a>
           <a href="#goals">居民诉求</a>
