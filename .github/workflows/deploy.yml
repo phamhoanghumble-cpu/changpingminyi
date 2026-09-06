@@ -64,4 +64,4 @@ jobs:
       - name: 列出最近一次部署
         if: success()
         run: |
-          env -u NODE_OPTIONS npx wrangler deployments list --name=jiancai-road | head -5
+          env -u NODE_OPTIONS npx wrangler deployments list --name=changpingminyi | head -5
