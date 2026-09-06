@@ -13,6 +13,7 @@ import {
   Paperclip,
   X,
   ExternalLink,
+  Video,
 } from "lucide-react";
 import {
   Dialog,
@@ -70,17 +71,109 @@ const questions = [
     "需要结合高峰交通与现场风险的核查结果，以及明确的整改安排。",
   ],
 ];
+function formatFileSize(bytes: number): string {
+  if (!bytes || bytes <= 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+interface FilePreview {
+  id: string;
+  file: File;
+  url?: string;
+  isImage: boolean;
+  isVideo: boolean;
+  isAudio: boolean;
+  sizeStr: string;
+}
+
 export default function Home() {
   const [open, setOpen] = useState(false),
     [files, setFiles] = useState<File[]>([]),
+    [previews, setPreviews] = useState<FilePreview[]>([]),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [receipt, setReceipt] = useState(""),
     [publicConsent, setPublicConsent] = useState(false),
     [tsToken, setTsToken] = useState(""),
-    [wallRefreshKey, setWallRefreshKey] = useState(0);
+    [wallRefreshKey, setWallRefreshKey] = useState(0),
+    [latestSubmittedId, setLatestSubmittedId] = useState("");
   const [items, setItems] = useState<any[]>([]),
     [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    const list: FilePreview[] = files.map((file, idx) => {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "";
+      const isImage =
+        file.type.startsWith("image/") ||
+        ["jpg", "jpeg", "png", "webp", "heic"].includes(ext);
+      const isVideo =
+        file.type.startsWith("video/") || ["mp4", "mov"].includes(ext);
+      const isAudio =
+        file.type.startsWith("audio/") || ["mp3", "m4a", "wav"].includes(ext);
+      let url: string | undefined = undefined;
+      if (isImage || isVideo) {
+        try {
+          url = URL.createObjectURL(file);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      return {
+        id: `${file.name}-${file.size}-${file.lastModified}-${idx}`,
+        file,
+        url,
+        isImage,
+        isVideo,
+        isAudio,
+        sizeStr: formatFileSize(file.size),
+      };
+    });
+
+    setPreviews(list);
+
+    return () => {
+      list.forEach((p) => {
+        if (p.url) URL.revokeObjectURL(p.url);
+      });
+    };
+  }, [files]);
+
+  function handleAddFiles(newFiles: FileList | File[] | null) {
+    if (!newFiles) return;
+    const incoming = Array.from(newFiles);
+    if (incoming.length === 0) return;
+
+    const existingSig = new Set(
+      files.map((f) => `${f.name}_${f.size}_${f.lastModified}`)
+    );
+    const uniqueIncoming = incoming.filter(
+      (f) => !existingSig.has(`${f.name}_${f.size}_${f.lastModified}`)
+    );
+
+    const combined = [...files, ...uniqueIncoming];
+    if (combined.length > 5) {
+      setMessage("最多允许上传 5 个附件，超出部分已被截断。");
+      setFiles(combined.slice(0, 5));
+      return;
+    }
+    const totalSize = combined.reduce((acc, f) => acc + f.size, 0);
+    if (totalSize > 20 * 1024 * 1024) {
+      setMessage(
+        `附件总大小不能超过 20MB（已选总计 ${formatFileSize(totalSize)}），请减选部分大文件。`
+      );
+      return;
+    }
+    setMessage("");
+    setFiles(combined);
+  }
+
+  function handleRemoveFile(index: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setMessage("");
+  }
+
   async function refresh() {
     try {
       const r = await fetch("/api/materials");
@@ -126,6 +219,7 @@ export default function Home() {
       const d = await r.json();
       if (!r.ok) throw Error(d.error || "提交失败，请稍后重试。");
       setReceipt(d.id);
+      setLatestSubmittedId(d.id);
       setFiles([]);
       setPublicConsent(false);
       form.reset();
@@ -194,6 +288,7 @@ export default function Home() {
           <Participation
             onUpload={() => setOpen(true)}
             refreshKey={wallRefreshKey}
+            latestSubmittedId={latestSubmittedId}
           />
           <section className="issues section" id="issues">
             <div className="section-heading">
@@ -607,22 +702,46 @@ export default function Home() {
         <DialogContent className="submission-dialog">
           <DialogTitle>补充你的现场记录或办理回复。</DialogTitle>
           <DialogDescription>
-            上传至少一个附件并填写说明，提交成功后将立即公开展示。
+            上传至少一个附件并填写说明，提交成功后将立即免审公开展示。
           </DialogDescription>
           {receipt ? (
-            <div className="success">
-              <Check size={36} />
-              <h3>材料已公开展示</h3>
-              <p>已进入“新收材料”和现场材料墙。请保存编号，后续补充时注明。</p>
-              <code>{receipt}</code>
-              <Button
-                onClick={() => {
-                  setOpen(false);
-                  window.location.hash = "wall";
-                }}
-              >
-                查看已展示材料
-              </Button>
+            <div className="upload-success-state">
+              <div className="success-icon-wrap">
+                <Check size={38} />
+              </div>
+              <span className="success-kicker">✓ 提交即发布 · 免审自动公示</span>
+              <h3>现场材料已成功发布！</h3>
+              <p className="success-desc">
+                您提交的现场记录已自动通过并直接进入下方的<strong>“现场证据瀑布流”</strong>，所有居民及相关部门均可实时查阅。
+              </p>
+              <div className="receipt-box">
+                <span className="receipt-label">存证公示编号</span>
+                <code>{receipt}</code>
+              </div>
+              <div className="success-action-btns">
+                <Button
+                  className="jump-btn"
+                  onClick={() => {
+                    setOpen(false);
+                    setTimeout(() => {
+                      document.getElementById("wall")?.scrollIntoView({ behavior: "smooth" });
+                    }, 120);
+                  }}
+                >
+                  <ArrowRight size={16} /> 立即前往现场瀑布流查看 👇
+                </Button>
+                <button
+                  type="button"
+                  className="continue-submit-btn"
+                  onClick={() => {
+                    setReceipt("");
+                    setFiles([]);
+                    setMessage("");
+                  }}
+                >
+                  继续提交其他现场材料
+                </button>
+              </div>
             </div>
           ) : (
             <form onSubmit={submit} className="submission-form">
@@ -660,44 +779,114 @@ export default function Home() {
                   placeholder="请写下亲眼看到的情况，或注明消息来源。时间不确定可直接说明。"
                 />
               </label>
-              <label className="upload-zone">
-                <Upload size={23} />
-                <strong>点击选择附件（必填）</strong>
-                <span>
-                  图片、视频、录音、PDF、Word、TXT
-                  <br />
-                  至少1个，最多5个，总计不超过20MB
-                </span>
-                <input
-                  type="file"
-                  required
-                  multiple
-                  accept=".jpg,.jpeg,.png,.webp,.heic,.mp4,.mov,.mp3,.m4a,.wav,.pdf,.doc,.docx,.txt"
-                  onChange={(e) => {
-                    setFiles(Array.from(e.target.files || []));
-                    setMessage("");
-                  }}
-                />
-              </label>
-              {files.length > 0 && (
-                <ul className="file-list">
-                  {files.map((f, i) => (
-                    <li key={i}>
-                      <Paperclip size={14} />
-                      <span>{f.name}</span>
+
+              <div className="upload-section">
+                <div className="upload-section-header">
+                  <span className="field-label-text">
+                    现场附件（必选 · 已支持图片缩略图实时预览）
+                  </span>
+                  {files.length > 0 && (
+                    <span className="file-stat-pill">
+                      已选 {files.length} / 5 个 · 共 {formatFileSize(files.reduce((n, f) => n + f.size, 0))}
+                    </span>
+                  )}
+                </div>
+
+                {files.length === 0 ? (
+                  <label className="upload-zone">
+                    <Upload size={28} />
+                    <strong>点击选择现场图片 / 视频 / 文件</strong>
+                    <span>
+                      图片选择后立即可见缩略图 · 视频/音频/PDF/文档均支持
+                      <br />
+                      至少 1 个，最多 5 个，总计不超过 20MB
+                    </span>
+                    <input
+                      type="file"
+                      multiple
+                      accept=".jpg,.jpeg,.png,.webp,.heic,.mp4,.mov,.mp3,.m4a,.wav,.pdf,.doc,.docx,.txt"
+                      onChange={(e) => {
+                        handleAddFiles(e.target.files);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                ) : (
+                  <div className="preview-container">
+                    <div className="preview-grid">
+                      {previews.map((item, idx) => (
+                        <div className="preview-card" key={item.id}>
+                          {item.isImage && item.url ? (
+                            <div className="preview-media-box">
+                              <img src={item.url} alt={item.file.name} className="preview-img" />
+                              <span className="preview-type-tag">图片</span>
+                            </div>
+                          ) : item.isVideo && item.url ? (
+                            <div className="preview-media-box video-box">
+                              <video src={item.url} className="preview-video" preload="metadata" />
+                              <span className="preview-type-tag video-tag">视频</span>
+                            </div>
+                          ) : (
+                            <div className="preview-file-box">
+                              {item.isAudio ? <Paperclip size={28} /> : <FileText size={28} />}
+                              <span className="preview-type-tag">
+                                {item.isAudio ? "音频" : "文档"}
+                              </span>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            className="preview-remove-btn"
+                            aria-label={"删除 " + item.file.name}
+                            title="删除此附件"
+                            onClick={() => handleRemoveFile(idx)}
+                          >
+                            <X size={14} />
+                          </button>
+                          <div className="preview-info-bar">
+                            <span className="preview-name" title={item.file.name}>
+                              {item.file.name}
+                            </span>
+                            <span className="preview-size">{item.sizeStr}</span>
+                          </div>
+                        </div>
+                      ))}
+
+                      {files.length < 5 && (
+                        <label className="preview-add-card" title="继续添加附件">
+                          <Plus size={24} />
+                          <span>继续添加</span>
+                          <small>还可加 {5 - files.length} 个</small>
+                          <input
+                            type="file"
+                            multiple
+                            accept=".jpg,.jpeg,.png,.webp,.heic,.mp4,.mov,.mp3,.m4a,.wav,.pdf,.doc,.docx,.txt"
+                            onChange={(e) => {
+                              handleAddFiles(e.target.files);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+
+                    <div className="preview-actions-bar">
+                      <span>提示：预览图片确认无误后即可提交，点击右上角 ✕ 可移除单张。</span>
                       <button
                         type="button"
-                        aria-label={"移除" + f.name}
-                        onClick={() =>
-                          setFiles(files.filter((_, j) => i !== j))
-                        }
+                        className="preview-clear-all"
+                        onClick={() => {
+                          setFiles([]);
+                          setMessage("");
+                        }}
                       >
-                        <X size={16} />
+                        清空全部重新选
                       </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="check-row">
                 <Checkbox
                   id="public-consent"
