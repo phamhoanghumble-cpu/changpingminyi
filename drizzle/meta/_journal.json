@@ -15,6 +15,13 @@
       "when": 1788684852682,
       "tag": "0001_mixed_changeling",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788690000000,
+      "tag": "0002_material_category",
+      "breakpoints": true
     }
   ]
 }

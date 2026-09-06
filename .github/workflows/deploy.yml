@@ -53,6 +53,9 @@ jobs:
             --file=./drizzle/init.sql \
             --persist
 
+      - name: 补齐已有数据库材料分类字段
+        run: env -u NODE_OPTIONS node scripts/ensure-material-category.mjs --remote
+
       - name: 部署到生产
         uses: cloudflare/wrangler-action@v3
         with:

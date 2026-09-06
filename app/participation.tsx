@@ -1,106 +1,81 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  Plus,
   FileText,
-  AlertTriangle,
-  EyeOff,
-  Bike,
-  ShieldAlert,
-  Car,
-  Scale,
-  Quote,
-  MessageCircleQuestion,
-  Image as ImageIcon,
-  CheckCircle2,
+  Upload,
   ChevronLeft,
   ChevronRight,
   X,
-  Maximize2,
   Calendar,
   MapPin,
 } from "lucide-react";
 
-interface VoiceItem {
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { MATERIAL_CATEGORIES, materialCategoryLabel } from "@/lib/material-categories";
+import { MaterialAttachment, type MaterialFile } from "./MaterialAttachment";
+
+interface ResidentMaterial {
   id: string;
-  tag: string;
+  category: string;
   title: string;
-  perspective: string;
   content: string;
-  author: string;
-  identity: string;
-  keywords: string[];
-  icon: any;
+  location: string;
+  event_date: string;
+  created_at: string;
+  files: MaterialFile[];
 }
 
-const VOICES: VoiceItem[] = [
+const DISCLOSURE_REQUESTS = [
   {
-    id: 'safety-kids',
-    tag: '通行安全 · 骑行被逼抢道',
-    title: '非机动车道被占满，逼得孩子每天跟大货车和公交抢道',
-    perspective: '每日骑车接送孩子的家长',
-    content: '每天早晚高峰骑电动车送小孩上学，原本属于非机动车的专属车道现在全停满了机动车。我们骑车的被硬生生挤到机动车主道上，身边大客车、泥头车呼啸而过，稍有刮擦后果不堪设想！这几个车位确实方便了停小汽车，但谁来对路上成百上千孩子和老人的生命安全负责？',
-    author: '陈女士',
-    identity: '周边小学就读家长 · 每日双向骑行',
-    keywords: ['#被逼走机动车道', '#儿童老人安全隐患', '#还路于慢行'],
-    icon: Bike,
+    id: "A", title: "泊位设置及车道调整依据",
+    items: [
+      "建材路现有道路停车泊位的设置依据。",
+      "停车泊位设置的审批或决定文件，含文号、签批机关、日期及实施范围。",
+      "道路停车泊位设置方案及道路交通组织方案。",
+      "停车泊位设置前后的道路断面图。",
+      "停车泊位设置前后的交通组织设计图。",
+      "原非机动车道取消的依据及批准文件。",
+      "“机非混合车道”认定所依据的法律、法规、规章、规范性文件及技术标准。",
+    ],
   },
   {
-    id: 'procedure-notice',
-    tag: '程序合规 · 涉嫌先斩后奏',
-    title: '未见任何法定形式公示，一夜之间突击划线',
-    perspective: '居住12年的老住户',
-    content: '按照《道路交通安全法》及北京市相关规定，改动道路慢行系统、施划路侧机动车停放泊位，必须提前进行必要性与安全性论证，并在现场张贴公告听取利害关系人意见。我们在这里住了十几年，没见过网前公示，没见过现场告示牌，早上一出门线就全划完了！这种完全绕开公众参与的做法，程序正当性何在？',
-    author: '张先生',
-    identity: '建材城东里老业主 · 业委会成员',
-    keywords: ['#未经合法公示', '#剥夺居民知情权', '#程序违法违规'],
-    icon: Scale,
+    id: "B", title: "“居民要求增加停车位”的依据",
+    items: [
+      "该路段停车需求调查报告。",
+      "居民意见征集材料。",
+      "居民意见统计结果。",
+      "将居民意见作为设置停车泊位依据的相关材料。",
+    ],
   },
   {
-    id: 'vision-blindspot',
-    tag: '视线盲区 · 路口鬼探头',
-    title: '路口停满SUV和商务车，推婴儿车过斑马线如开盲盒',
-    perspective: '常推婴儿车出行的老人与家长',
-    content: '很多高大的SUV、MPV直接贴着人行道和路口停车，把左右两侧的行车视线遮挡得严严实实。推着婴儿车走到路口根本看不见拐弯来车，每次都得把车头先探出去一米多冒险看路，‘鬼探头’险象环生！这不是简单的停车位，这是在主干道路口人为制造高危视觉盲区！',
-    author: '刘阿姨',
-    identity: '常推婴儿车老人 · 附近小区居民',
-    keywords: ['#致命视线盲区', '#斑马线路口被挡', '#鬼探头险象环生'],
-    icon: EyeOff,
+    id: "C", title: "交通运行与安全评估材料",
+    items: [
+      "设置停车位前后的交通流量调查数据。",
+      "道路交通拥堵情况调查或评估材料。",
+      "泊位设置前的交通安全评估、论证或相关技术审查材料。",
+      "取消原非机动车道后非机动车通行组织的论证材料。",
+      "行人、非机动车与机动车混行安全性的论证材料。",
+    ],
   },
   {
-    id: 'traffic-congestion',
-    tag: '交通拥堵 · 倒车别死整条路',
-    title: '早晚高峰一把方向倒不进去，整条路经常被别死十几分钟',
-    perspective: '沿街便民商户与通勤骑手',
-    content: '建材路本来就是连接几个大社区的核心动脉，上下班本来车就多。划了路侧泊位后，经常有新手司机在路中间反复倒车、揉库，后方车辆瞬间排成长龙，喇叭声震耳欲聋。非机动车被迫在人行道缝隙里乱窜，商铺门口装卸货进出也全是摩擦，整条街的通行秩序被搞得一团糟！',
-    author: '赵店长',
-    identity: '沿街商户店主 · 外卖取餐点',
-    keywords: ['#加剧早晚拥堵', '#反复揉库倒车别路', '#通行秩序瘫痪'],
-    icon: AlertTriangle,
-  },
-  {
-    id: 'car-owner-view',
-    tag: '车主理性视角 · 饮鸩止渴',
-    title: '靠牺牲主路安全换几十个车位，根本解决不了缺口还激化矛盾',
-    perspective: '持车业主 · 同样有停车需求',
-    content: '我自己天天开车上下班，也非常清楚老旧小区停车确实难。但这几十个路侧车位对于整个片区成百上千辆的缺口而言，根本就是杯水车薪！为了解决这零星几十辆车的停放，牺牲整条干道的通行安全和几万行人的路权，不仅解决不了停车难，反而人为制造了开车与骑车人的尖锐对立，完全是本末倒置。',
-    author: '王先生',
-    identity: '持车业主 · 每日驾车通勤',
-    keywords: ['#治标不治本', '#杯水车薪', '#激化邻里矛盾'],
-    icon: Car,
-  },
-  {
-    id: 'policy-violation',
-    tag: '城市规划 · 逆向倒退',
-    title: '公然违背北京市“慢行优先”总体战略，开历史倒车',
-    perspective: '交通规划关注者 · 法律从业邻居',
-    content: '北京市近年来多次出台城市交通发展专项规划，三令五申‘以人为本、慢行优先、绿色出行’，明确严禁随意压缩非机动车道宽度设置机动车泊位。建材路原本是回天地区慢行系统的重要一环，这一划不仅把路权强行拱手让给汽车，更是公然背离市级重大交通战略导向，必须严肃复核并彻底纠偏！',
-    author: '孙女士',
-    identity: '法务工作者 · 城市慢行倡导者',
-    keywords: ['#违背慢行优先战略', '#侵害法定通行路权', '#依法纠偏撤销'],
-    icon: ShieldAlert,
+    id: "D", title: "公告及意见处理材料",
+    items: [
+      "道路停车泊位设置前后的公示、公告材料。",
+      "公示、公告的时间、地点、内容及网上发布的原始网址。",
+      "公示、公告期间收到的意见及处理情况。",
+    ],
   },
 ];
+
+export function DisclosureRequests() {
+  return <div className="disclosure-list">
+    {DISCLOSURE_REQUESTS.map((group) => <details key={group.id} className="disclosure-group">
+      <summary>{group.id} · {group.title}<span>{group.items.length} 项</span></summary>
+      <ul>{group.items.map((item) => <li key={item}>{item}</li>)}</ul>
+    </details>)}
+    <p className="section-note">对未制作、不存在或依法不能公开的材料，请分别说明情况及依据。</p>
+  </div>;
+}
 
 export function Participation({
   onUpload,
@@ -111,29 +86,41 @@ export function Participation({
   refreshKey?: number;
   latestSubmittedId?: string;
 }) {
-  const [wall, setWall] = useState<any[]>([]);
+  const [wall, setWall] = useState<ResidentMaterial[]>([]);
   const [wallError, setWallError] = useState(false);
+  const [category, setCategory] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [retryKey, setRetryKey] = useState(0);
   const [lightbox, setLightbox] = useState<{
-    item: any;
+    item: ResidentMaterial;
     activeFileIndex: number;
   } | null>(null);
 
-  async function refreshWall() {
-    try {
-      const r = await fetch("/api/evidence");
-      if (!r.ok) throw Error();
-      setWall((await r.json()).items);
-      setWallError(false);
-    } catch {
-      setWallError(true);
-    }
-  }
-
   useEffect(() => {
-    refreshWall();
+    const controller = new AbortController();
+    async function refreshWall() {
+      try {
+        const response = await fetch(`/api/evidence${category ? `?category=${category}` : ""}`, { signal: controller.signal });
+        if (!response.ok) throw Error();
+        const data = await response.json();
+        if (!controller.signal.aborted) { setWall(data.items); setWallError(false); }
+      } catch {
+        if (!controller.signal.aborted) setWallError(true);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+    void refreshWall();
     const timer = setInterval(refreshWall, 30000);
-    return () => clearInterval(timer);
-  }, [refreshKey]);
+    return () => { controller.abort(); clearInterval(timer); };
+  }, [refreshKey, category, retryKey]);
+
+  function chooseCategory(value: string) {
+    setCategory(value);
+    setLoading(true);
+    setWallError(false);
+    setWall([]);
+  }
 
   useEffect(() => {
     if (!lightbox) return;
@@ -182,117 +169,42 @@ export function Participation({
 
   return (
     <>
-      {/* 居民心声 / 真实多视角反馈（替代原投票） */}
-      <section className="section voices-section" id="voices">
-        <div
-          id="vote"
-          style={{ position: "relative", top: "-50px", visibility: "hidden" }}
-        />
-        <div className="section-heading">
-          <h2>
-            车位怎么划，<span>听听现场居民怎么说。</span>
-          </h2>
-          <p>多重视角 · 真实心声 · 关乎每天的通行安全与路权</p>
-        </div>
-
-        <div className="voice-grid">
-          {VOICES.map((v) => {
-            const Icon = v.icon;
-            return (
-              <article className="voice-card" key={v.id}>
-                <div>
-                  <div className="voice-header">
-                    <span className="voice-tag">{v.tag}</span>
-                    <Icon size={20} className="voice-icon" />
-                  </div>
-                  <h3 className="voice-title">{v.title}</h3>
-                  <div className="voice-quote-wrapper">
-                    <Quote size={20} className="voice-quote-mark" />
-                    <p className="voice-quote">{v.content}</p>
-                  </div>
-                </div>
-
-                <div className="voice-footer">
-                  <div className="voice-author">
-                    <div className="voice-avatar">{v.author.slice(0, 1)}</div>
-                    <div className="voice-author-info">
-                      <span className="voice-author-name">
-                        {v.author} <small>({v.perspective})</small>
-                      </span>
-                      <span className="voice-author-desc">{v.identity}</span>
-                    </div>
-                  </div>
-                  <div className="voice-keywords">
-                    {v.keywords.map((k, i) => (
-                      <span className="voice-kw" key={i}>
-                        {k}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-
-        {/* 底部号召行动条 */}
-        <div className="voice-callout">
-          <div className="voice-callout-text">
-            <div className="voice-callout-title">
-              <MessageCircleQuestion size={22} />
-              <h4>您在建材路也遇到通行困扰或掌握第一手现场情况吗？</h4>
-            </div>
-            <p>
-              我们收集来自骑行者、行人、商户及车主的真实遭遇。欢迎提供您的观点、现场照片、行车记录仪或回复记录。
-            </p>
-          </div>
-          <button onClick={onUpload} className="primary voice-callout-btn">
-            提交我的现场经历 / 上传材料 <Plus size={18} />
-          </button>
-        </div>
-      </section>
-
-      {/* 现场材料证据瀑布流展示模块 */}
-      <section className="section photo-wall" id="wall">
+      <div className="public-materials" id="wall" role="region" aria-labelledby="wall-heading">
         <div className="section-heading wall-section-heading">
           <div>
             <div className="live-status-pill">
-              <span className="live-dot" /> 居民直接提交 · 免审秒通公示 · 实时展示
+              <span className="live-dot" /> 用户上传 · 即时公开 · 内容待核实
             </div>
-            <h2>
-              现场什么样，<span>证据瀑布流直接展示。</span>
-            </h2>
-            <p>真实还原建材路通行、划线及安全现状 · 所有照片与影像实时可见</p>
+            <h3 id="wall-heading">诉求与答复公开台</h3>
+            <p>诉求、答复原文与整改结果，在此公开。</p>
           </div>
           <div className="wall-header-actions">
             <span className="wall-count-badge">
-              已展示 <strong>{wall.length}</strong> 份现场证据
+              当前显示 <strong>{wall.length}</strong> 份 · 最新60份
             </span>
-            <button onClick={onUpload} className="primary">
-              上传附件并展示 <Plus size={18} />
+            <button onClick={onUpload} className="primary wall-upload-main-btn" title="上传部门答复、工单截图、回访录音或现场材料">
+              <Upload size={17} /> 公开办理材料
             </button>
           </div>
         </div>
-        <p className="section-note">
-          居民提交后免审秒通直接展示。附件必须上传；发布者须先遮挡手机号、人脸、车牌、住址等隐私信息。页面展示不等同于本站已独立核实全部事实，请勿据此认定个人责任。
-        </p>
-
+        <p className="section-note">保留诉求与答复上下文，遮挡无关个人信息。用户上传的部门材料不等于官方发布。</p>
+        <div className="wall-filters" role="group" aria-label="按材料分类筛选">
+          {[{value: "", label: "全部"}, ...MATERIAL_CATEGORIES].map((filter) => (
+            <button key={filter.value} type="button" aria-pressed={category === filter.value}
+              onClick={() => { if (category !== filter.value) chooseCategory(filter.value); }}>{filter.label}</button>
+          ))}
+        </div>
+        {loading && <p className="wall-loading" role="status">正在加载公开材料…</p>}
         {wallError ? (
-          <p className="notice">证据瀑布流暂时无法更新，请稍后刷新。</p>
+          <div className="notice" role="alert">公开材料暂时无法更新。
+            <button type="button" className="wall-retry" onClick={() => { setLoading(true); setWallError(false); setRetryKey((key) => key + 1); }}>重新加载</button>
+          </div>
         ) : null}
 
         {wall.length ? (
           <div className="masonry-wall-container">
             {wall.map((item) => {
               const isHighlighted = item.id === latestSubmittedId;
-              const imageFiles = (item.files || []).filter((f: any) =>
-                f.type.startsWith("image/")
-              );
-              const otherFiles = (item.files || []).filter(
-                (f: any) => !f.type.startsWith("image/")
-              );
-              const primaryFile = item.files?.[0];
-
               return (
                 <article
                   className={`wall-card ${
@@ -301,88 +213,34 @@ export function Participation({
                   key={item.id}
                   id={`wall-${item.id}`}
                 >
-                  {/* 多媒体瀑布流展示 */}
-                  {primaryFile ? (
-                    primaryFile.type.startsWith("image/") ? (
-                      <div className="wall-masonry-media-wrap">
-                        <div
-                          className="wall-masonry-media"
-                          onClick={() =>
-                            setLightbox({ item, activeFileIndex: 0 })
-                          }
-                          title="点击全屏浏览大图"
-                        >
-                          <img
-                            src={primaryFile.url}
-                            alt={item.title}
-                            loading="lazy"
-                            className="wall-masonry-img"
-                          />
-                          <div className="wall-media-hover-overlay">
-                            <Maximize2 size={16} /> 点击大图浏览
-                          </div>
-                          {imageFiles.length > 1 && (
-                            <span className="wall-badge-pill">
-                              <ImageIcon size={12} /> 共 {imageFiles.length} 张图片
-                            </span>
-                          )}
-                        </div>
-
-                        {/* 多张图片时的缩略图条 */}
-                        {imageFiles.length > 1 && (
-                          <div className="wall-sub-thumbnails">
-                            {imageFiles.map((f: any, fIdx: number) => (
-                              <div
-                                key={fIdx}
-                                className={`sub-thumb-item ${
-                                  fIdx === 0 ? "active" : ""
-                                }`}
-                                onClick={() =>
-                                  setLightbox({ item, activeFileIndex: fIdx })
-                                }
-                                title={`查看第 ${fIdx + 1} 张图片`}
-                              >
-                                <img src={f.url} alt={f.name} />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : primaryFile.type.startsWith("video/") ? (
-                      <div className="wall-media video-wall-media">
-                        <video
-                          controls
-                          preload="metadata"
-                          playsInline
-                          src={primaryFile.url}
-                        />
-                      </div>
-                    ) : (
-                      <div className="wall-text-icon">
-                        <FileText size={38} />
-                        <a
-                          href={primaryFile.url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          查看附件：{primaryFile.name}
-                        </a>
-                      </div>
-                    )
-                  ) : null}
-
-                  <div className="wall-card-body">
+                  <header className="wall-card-heading">
                     <div className="wall-card-meta-top">
                       <span className="auto-pass-pill">
-                        <CheckCircle2 size={12} /> 免审秒通 · 实时公开
+                        {materialCategoryLabel(item.category)}
                       </span>
-                      <time className="wall-card-time">
+                      <time className="wall-card-time" dateTime={item.created_at}>
                         {formatTimeAgo(item.created_at)}
                       </time>
                     </div>
 
                     <h3 className="wall-card-title">{item.title}</h3>
-                    <p className="wall-description">{item.content}</p>
+                  </header>
+                  <div className="wall-attachment-stack">
+                    {item.files.map((file, index) => (
+                      <MaterialAttachment
+                        key={file.url}
+                        file={file}
+                        onExpand={() => setLightbox({ item, activeFileIndex: index })}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="wall-card-body">
+                    {item.content.length > 240 ? <details className="wall-text-details">
+                      <summary><span className="wall-description">{item.content.slice(0, 240)}…</span><span className="wall-read-more">展开全文</span></summary>
+                      <p className="wall-description">{item.content}</p>
+                    </details> : <p className="wall-description">{item.content}</p>}
+                    {isHighlighted && <span className="wall-new-label">刚刚提交 · 已公开</span>}
 
                     <div className="wall-card-meta-bottom">
                       <span className="meta-chip">
@@ -391,55 +249,33 @@ export function Participation({
                       <span className="meta-chip">
                         <Calendar size={13} />{" "}
                         {item.event_date
-                          ? `拍摄于 ${item.event_date}`
-                          : "拍摄时间未注"}
+                          ? `材料日期：${item.event_date}`
+                          : "材料日期未注明"}
                       </span>
                     </div>
 
-                    {otherFiles.length > 0 && (
-                      <div className="wall-attachments">
-                        <span className="attachments-title">附带文件：</span>
-                        {otherFiles.map((f: any, i: number) => (
-                          <a
-                            href={f.url}
-                            key={i}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <FileText size={12} /> {f.name}
-                          </a>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </article>
               );
             })}
           </div>
-        ) : !wallError ? (
+        ) : !wallError && !loading ? (
           <div className="wall-empty">
-            <h3>等待第一份居民现场证据。</h3>
+            <h3>{category ? "该分类暂无公开材料。" : "暂无公开材料。"}</h3>
             <p>
-              提交至少一个现场图片、行车记录仪、录音或文件，免审秒通直接在此处瀑布流呈现。
+              可发布文字、图片、视频、PDF和音频，提交成功即显示。
             </p>
-            <button onClick={onUpload} className="text-link">
-              提交第一份证据 <Plus size={18} />
-            </button>
           </div>
         ) : null}
-      </section>
+      </div>
 
       {/* 大图灯箱浏览组件 */}
       {lightbox && (
-        <div
-          className="lightbox-modal"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setLightbox(null);
-          }}
-        >
+        <Dialog open onOpenChange={(value) => { if (!value) setLightbox(null); }}>
+        <DialogContent className="material-lightbox-dialog" showCloseButton={false} aria-describedby={undefined}>
           <div className="lightbox-header">
             <div className="lightbox-title-wrap">
-              <span className="lightbox-title">{lightbox.item.title}</span>
+              <DialogTitle className="lightbox-title">{lightbox.item.title}</DialogTitle>
               <span className="lightbox-counter">
                 {lightbox.activeFileIndex + 1} / {lightbox.item.files.length}
               </span>
@@ -473,22 +309,9 @@ export function Participation({
               </button>
             )}
 
-            {lightbox.item.files[lightbox.activeFileIndex]?.type?.startsWith(
-              "video/"
-            ) ? (
-              <video
-                controls
-                autoPlay
-                className="lightbox-media"
-                src={lightbox.item.files[lightbox.activeFileIndex].url}
-              />
-            ) : (
-              <img
-                src={lightbox.item.files[lightbox.activeFileIndex]?.url}
-                alt={lightbox.item.title}
-                className="lightbox-media"
-              />
-            )}
+            <div className="lightbox-attachment">
+              <MaterialAttachment key={lightbox.activeFileIndex} file={lightbox.item.files[lightbox.activeFileIndex]} />
+            </div>
 
             {lightbox.item.files.length > 1 && (
               <button
@@ -512,8 +335,11 @@ export function Participation({
           {lightbox.item.files.length > 1 && (
             <div className="lightbox-footer">
               <div className="lightbox-strip">
-                {lightbox.item.files.map((f: any, idx: number) => (
-                  <div
+                {lightbox.item.files.map((f, idx) => (
+                  <button
+                    type="button"
+                    aria-label={`查看附件：${f.name}`}
+                    aria-pressed={idx === lightbox.activeFileIndex}
                     key={idx}
                     className={`lightbox-strip-item ${
                       idx === lightbox.activeFileIndex ? "active" : ""
@@ -530,12 +356,13 @@ export function Participation({
                         <FileText size={16} />
                       </div>
                     )}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
           )}
-        </div>
+        </DialogContent>
+        </Dialog>
       )}
     </>
   );

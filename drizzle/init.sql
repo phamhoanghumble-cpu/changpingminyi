@@ -1,10 +1,11 @@
 /**
- * 一次性 D1 初始化 SQL（合并 drizzle/0000 + 0001）
+ * 一次性 D1 初始化 SQL（合并 drizzle/0000 + 0001 + 0002）
  * 命令：wrangler d1 execute jiancai-road --remote --file=./drizzle/init.sql
  */
 CREATE TABLE IF NOT EXISTS `materials` (
   `id` text PRIMARY KEY NOT NULL,
   `title` text NOT NULL,
+  `category` text NOT NULL DEFAULT 'uncategorized',
   `content` text NOT NULL,
   `location` text NOT NULL DEFAULT '',
   `event_date` text NOT NULL DEFAULT '',

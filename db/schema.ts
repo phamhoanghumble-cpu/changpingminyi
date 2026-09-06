@@ -1,6 +1,6 @@
 import {sqliteTable,text,integer} from 'drizzle-orm/sqlite-core';
 export const materials=sqliteTable('materials',{
- id:text('id').primaryKey(),title:text('title').notNull(),content:text('content').notNull(),location:text('location').notNull(),eventDate:text('event_date').notNull(),createdAt:text('created_at').notNull(),files:text('files').notNull(),fileCount:integer('file_count').notNull(),status:text('status').notNull().default('pending'),consent:integer('consent').notNull().default(0)
+ category:text('category').notNull().default('uncategorized'),id:text('id').primaryKey(),title:text('title').notNull(),content:text('content').notNull(),location:text('location').notNull(),eventDate:text('event_date').notNull(),createdAt:text('created_at').notNull(),files:text('files').notNull(),fileCount:integer('file_count').notNull(),status:text('status').notNull().default('pending'),consent:integer('consent').notNull().default(0)
 });
 export const votes=sqliteTable('votes',{
  phoneHash:text('phone_hash').primaryKey(),choice:text('choice').notNull(),createdAt:text('created_at').notNull()
